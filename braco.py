@@ -5,7 +5,6 @@ import math
 from rtde_control import RTDEControlInterface
 from rtde_receive import RTDEReceiveInterface
 
-
 PI = math.pi
 
 HOST = "169.254.101.232"
@@ -14,12 +13,14 @@ PORT = 30002
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 
+rtde_receive = RTDEReceiveInterface(HOST)
+rtde_control = RTDEControlInterface(HOST)
 
-base = -360
+base = 90
 ombro = -90
-cotovelo = 0
-p1 = -90
-p2 = 360
+cotovelo = 90
+p1 = -270
+p2 =90
 p3 = 90
 
 base = str(((base * PI)/180))
@@ -30,7 +31,7 @@ p2 = str(((p2 * PI)/180))
 p3 = str((p3 * PI)/180)
 
 acceleration = "5.0"
-velocity = "5.0"
+velocity = "0.5"
 
 positions = "[" + base + "," + ombro + "," + cotovelo + "," + p1 + "," + p2 + "," + p3 + "]"
 
@@ -42,11 +43,19 @@ time.sleep(1)
 
 s.send((move_text + "\n").encode('utf8'))
 
-rtde_receive = RTDEReceiveInterface(HOST)
+robot_mode = rtde_receive.getRobotMode()
+print(robot_mode)
 
-temperature = rtde_receive.getJointTemperatures()
+# time.sleep(0.5)  # Check every 0.5 seconds
+
+
+
+# temperature = rtde_receive.getJointTemperatures()
+# pose = rtde_receive.getTargetTCPPose()
+# success = rtde_control.recoverFromProtectiveStop()
         
-print("\n Temp: ", temperature)
+# print("\n Temp: ", temperature)
+# print("\n Pose: ", pose)
 
 ##base, ombro, cotovelo, pulso1, pulso2, pulso3
 # s.send(("movej ([0.540537125683036, -2.0, -1.0986348160112505, \
