@@ -2,6 +2,9 @@ import socket
 import time
 import math
 
+from rtde_control import RTDEControlInterface
+from rtde_receive import RTDEReceiveInterface
+
 
 PI = math.pi
 
@@ -12,12 +15,12 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 
 
-base = 0
-ombro = -85
-cotovelo = 83
-p1 = 21
-p2 = 24
-p3 = 47
+base = -360
+ombro = -90
+cotovelo = 0
+p1 = -90
+p2 = 360
+p3 = 90
 
 base = str(((base * PI)/180))
 ombro = str(((ombro * PI)/180))
@@ -26,12 +29,10 @@ p1 = str(((p1 * PI)/180))
 p2 = str(((p2 * PI)/180))
 p3 = str((p3 * PI)/180)
 
-acceleration = "1.3"
-velocity = "1.0"
+acceleration = "5.0"
+velocity = "5.0"
 
 positions = "[" + base + "," + ombro + "," + cotovelo + "," + p1 + "," + p2 + "," + p3 + "]"
-
-print(type(positions))
 
 move_text = "movej(" + positions + "," + "a="  + acceleration + "," + "v=" + velocity + ")" 
 
@@ -40,6 +41,12 @@ print(move_text)
 time.sleep(1)
 
 s.send((move_text + "\n").encode('utf8'))
+
+rtde_receive = RTDEReceiveInterface(HOST)
+
+temperature = rtde_receive.getJointTemperatures()
+        
+print("\n Temp: ", temperature)
 
 ##base, ombro, cotovelo, pulso1, pulso2, pulso3
 # s.send(("movej ([0.540537125683036, -2.0, -1.0986348160112505, \
