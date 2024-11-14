@@ -13,7 +13,7 @@ import math3d as m3d
 RASPBERRY_BOOL = False
 # If this is run on a linux system, a picamera will be used.
 # If you are using a linux system, with a webcam instead of a raspberry pi delete the following if-statement
-
+#djelksdjflksdjflk
 ROBOT_IP = '169.254.41.22'
 ACCELERATION = 0.3  # Robot acceleration value
 VELOCITY = 0.3  # Robot speed value
