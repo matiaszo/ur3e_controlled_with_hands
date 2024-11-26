@@ -81,23 +81,15 @@ def get_hand_size(hand_landmarks, frame):
 def get_rotate_wrist(hand_landmarks, frame, hand_size):
     h, w, _ = frame.shape
 
-    top_distance_x = abs(hand_landmarks[5].x - hand_landmarks[17].x)
-    top_distance_y = abs(hand_landmarks[5].y - hand_landmarks[17].y)
-    top_distance = w * ((top_distance_x*top_distance_x) + (top_distance_y*top_distance_y)) ** 0.5
+    sx = hand_landmarks[0].x 
+    sy = hand_landmarks[0].y
+    hx = hand_landmarks[13].x
+    hy = hand_landmarks[13].y
 
-    hand_top_normal_distance = hand_size * 0.7
-    if not top_distance > hand_top_normal_distance:
+    dx = hx - sx
+    dy = hy - sy
 
-        rotate_wrist = top_distance / hand_top_normal_distance
-
-        if hand_landmarks[5].z > hand_landmarks[17].z:
-            rotate_wrist *= 1
-        elif hand_landmarks[17].z > hand_landmarks[5].z:
-            rotate_wrist *= -1
-    else:
-        rotate_wrist = 0
-
-    return rotate_wrist
+    return ((dy ** 0 ) * dx) * 8
 
 
 
@@ -127,10 +119,6 @@ def move_robot(hand_landmarks, frame):
     w_pos = rotate_wrist   * scale
 
 
-    # Update robot target position (relative to current position)
-    # robot_target_position = [robot_pos[0] + x_pos, robot_pos[1] + y_pos, robot_pos[2] + z_pos]
-    # robot_target_position = check_max_xyz(robot_target_position)
-
     move_joints = initial_joint_positions[:]
     move_joints[0] += x_pos  
     if move_joints[1] + y_pos > -2.37:
@@ -152,7 +140,27 @@ def send_data():
     # Endpoint do Realtime Database
     url = f"{DATABASE_URL}/lastData.json?auth={API_KEY}"
 
-    data = []
+    while True: 
+        # capture all data needed from the robot using RTDERecieveInterface
+        current_data = {
+            "main_voltage": rtde_receive. getActualMainVoltage(),
+            "robot_ac": rtde_receive.getActualRobotCurrent(),
+            "robot_voltage": rtde_receive.getActualRobotVoltage(),
+            "status": rtde_receive.getSafetyStatusBits(),               
+            "tcp_pose": rtde_receive.getActualTCPPose(),
+            "temperatures": rtde_receive.getJointTemperatures()
+        }
+        response = requests.put(url, json=current_data)
+
+
+def send_graph():
+    # Endpoint do Realtime Database
+    url = f"{DATABASE_URL}/data.json?auth={API_KEY}"
+    delay = 60
+    stack_data = 6
+
+    history = [0 for _ in range(stack_data)]
+
 
     while True: 
         # capture all data needed from the robot using RTDERecieveInterface
@@ -164,11 +172,20 @@ def send_data():
             "tcp_pose": rtde_receive.getActualTCPPose(),
             "temperatures": rtde_receive.getJointTemperatures()
         }
+        
 
-        # if(len(data) < 6)
+        for i in range(len(history)-1):
+            history[i] = history[i+1]
+        history[stack_data-1] = current_data
+        
+        data = {
+            "data" : history
+        }
+        response = requests.put(url,json=data)
+        print(data)
+        time.sleep(delay)
 
-        response = requests.put(url, json=current_data)
-
+        
 
 def get_data():
         # Endpoint do Realtime Database
@@ -188,23 +205,6 @@ def get_data():
         # print(commands)
 
 
-
-# def send_graph():
-#     url = f"{DATABASE_URL}/userAction.json?auth={API_KEY}"
-
-#     while True:
-
-                          
-# NAO SABO SE É ÚTIL
-# Function to limit the movement of the robot in XYZ space
-# def check_max_xyz(robot_target_position):
-#     # Limit the movement range in 3D space (you can adjust these values as needed)
-#     max_dist = 3
-#     min_dist = -3
-#     robot_target_position[0] = max(min(robot_target_position[0], max_dist), min_dist)
-#     robot_target_position[1] = max(min(robot_target_position[1], max_dist), min_dist)
-#     robot_target_position[2] = max(min(robot_target_position[2], max_dist), min_dist)
-#     return robot_target_position
 
 
 def isThreadRunning(name):
@@ -227,6 +227,9 @@ t_send_stats.start()
 
 t_get_commands = threading.Thread(target=get_data, name='Get commands from database')
 t_get_commands.start()
+
+t_send_graph = threading.Thread(target=send_graph, name='Send data to graph')
+t_send_graph.start()
 
 while True:
     ret, frame = vs.read()

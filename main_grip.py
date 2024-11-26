@@ -18,7 +18,7 @@ mpDraw = mp.solutions.drawing_utils
 IP = '169.254.108.43'
 gripper = Gripper(IP)
 
-vs = cv2.VideoCapture(1) 
+vs = cv2.VideoCapture(0) 
 vs.set(cv2.CAP_PROP_FRAME_WIDTH, SCREEN_WIDTH)
 vs.set(cv2.CAP_PROP_FRAME_HEIGHT, SCREEN_HEIGHT)
 
