@@ -1,8 +1,7 @@
 import cv2 
 import mediapipe as mp
 import time
-import firebase_admin
-from firebase_admin import credentials, db
+import requests
 import threading
 import URBasic
 from rtde_receive import RTDEReceiveInterface
@@ -54,10 +53,10 @@ vs = cv2.VideoCapture(0)
 vs.set(cv2.CAP_PROP_FRAME_WIDTH, SCREEN_WIDTH)
 vs.set(cv2.CAP_PROP_FRAME_HEIGHT, SCREEN_HEIGHT)
 
-cred = credentials.Certificate("C:\\Users\\kauvm\\Codes\\HandsRecognizeCode\\ur3e-dashboard-firebase-adminsdk-n2frv-1b5ac03c82.json")
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://ur3e-dashboard-default-rtdb.firebaseio.com/'
-})
+API_KEY = "AIzaSyDmJLy9G9E6UGmJTy-2dfXJfRB8Kz1Jqtw"
+DATABASE_URL = "https://ur3e-dashboard-default-rtdb.firebaseio.com/"
+
+
 
 def find_hands(image):
     frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -139,7 +138,6 @@ def move_robot(hand_landmarks, frame):
     else:
         move_joints[1] = -2.37
         move_joints[3] = -0.9
-        print(move_joints[3])
     move_joints[5] += w_pos 
 
     if not isThreadRunning('Move Robot'):
@@ -151,42 +149,51 @@ def move_robot(hand_landmarks, frame):
 
 
 def send_data():
+    # Endpoint do Realtime Database
+    url = f"{DATABASE_URL}/lastData.json?auth={API_KEY}"
+
+    data = []
+
     while True: 
         # capture all data needed from the robot using RTDERecieveInterface
-        joint_temperatures = rtde_receive.getJointTemperatures()
-        safety = rtde_receive.getSafetyStatusBits()
-        tcp_pose = rtde_receive.getActualTCPPose()
-        main_voltage = rtde_receive. getActualMainVoltage()
-        robot_voltage = rtde_receive.getActualRobotVoltage()
-        current = rtde_receive.getActualRobotCurrent()
+        current_data = {
+            "main_voltage": rtde_receive. getActualMainVoltage(),
+            "robot_ac": rtde_receive.getActualRobotCurrent(),
+            "robot_voltage": rtde_receive.getActualRobotVoltage(),
+            "status": rtde_receive.getSafetyStatusBits(),               
+            "tcp_pose": rtde_receive.getActualTCPPose(),
+            "temperatures": rtde_receive.getJointTemperatures()
+        }
 
-        ref = db.reference()
+        # if(len(data) < 6)
 
-        ref.child('lastData').update(
-        {
-            "main_voltage": main_voltage,
-            "robot_ac": current,
-            "robot_voltage": robot_voltage,
-            "status": safety,               #REVIEW
-            "tcp_pose": tcp_pose,
-            "temperatures": joint_temperatures
-        })
+        response = requests.put(url, json=current_data)
 
 
 def get_data():
+        # Endpoint do Realtime Database
+        url = f"{DATABASE_URL}/userAction.json?auth={API_KEY}"
         while True:
-
-            ref = db.reference()
-
-            response = ref.child('userAction').get()
-
+            response = requests.get(url).json()
             if response['action']:
                 s.sendall('unlock protective stop\n'.encode())
                 response = s.recv(1024)
-                print("Response to unlock protective stop:", response)
+                data = {
+                    'action' : False
+                }
+                response = requests.put(url, json=data)
+
 
         #----------------------SHOW----------------------------
         # print(commands)
+
+
+
+# def send_graph():
+#     url = f"{DATABASE_URL}/userAction.json?auth={API_KEY}"
+
+#     while True:
+
                           
 # NAO SABO SE É ÚTIL
 # Function to limit the movement of the robot in XYZ space
@@ -203,13 +210,12 @@ def get_data():
 def isThreadRunning(name):
     for thread in threading.enumerate():
         if thread.name == name:
-            if thread.is_alive():
-                print('IS RUNNING')
-            else:
-                print('IS NOT RUNNING')
+            # if thread.is_alive():
+            #     print('IS RUNNING')
+            # else:
+            #     print('IS NOT RUNNING')
             return thread.is_alive()
     
-    print(threading.enumerate())
     return False
 
 
