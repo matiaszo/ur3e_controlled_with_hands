@@ -6,6 +6,7 @@ import threading
 import URBasic
 from rtde_receive import RTDEReceiveInterface
 import socket
+import datetime
 
 # Constants for hand tracking
 SCREEN_WIDTH = 700
@@ -178,8 +179,14 @@ def send_graph():
             history[i] = history[i+1]
         history[stack_data-1] = current_data
         
+        hour = str(datetime.datetime.now().hour)
+        minute = str(datetime.datetime.now().minute)
+        seconds = str(datetime.datetime.now().second)
+        timestamp = hour + ':' + minute + ':' + seconds
+        
         data = {
-            "data" : history
+            "data" : history,
+            "timestamp" : timestamp
         }
         response = requests.put(url,json=data)
         print(data)
